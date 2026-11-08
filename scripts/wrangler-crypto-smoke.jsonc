@@ -1,0 +1,7 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "trueseal-cp02-local-crypto-smoke",
+  "main": "./crypto-edge-smoke.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false
+}
