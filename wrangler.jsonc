@@ -10,5 +10,17 @@
       "database_id": "9b524f9f-97f3-4116-9d43-491875a4c58f",
       "preview_database_id": "DB"
     }
-  ]
+  ],
+  "env": {
+    "preview": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "trueseal-preview-db",
+          "database_id": "0d767182-5c5b-4644-8c18-9e8bcc1ca3a2",
+          "preview_database_id": "DB"
+        }
+      ]
+    }
+  }
 }
