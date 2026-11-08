@@ -16,7 +16,15 @@
       "vars": {
         "TRUSEAL_PUBLIC_ORIGIN": "https://trueseal-431.pages.dev",
         "TRUSEAL_SIGNING_KID": "trueseal-demo-ed25519-v1"
-      }
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "trueseal-db",
+          "database_id": "9b524f9f-97f3-4116-9d43-491875a4c58f",
+          "preview_database_id": "DB"
+        }
+      ]
     },
     "preview": {
       "d1_databases": [
