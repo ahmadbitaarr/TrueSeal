@@ -121,3 +121,51 @@ signing credentials were introduced.
   no production signing functionality is being claimed.
 - Existing development-dependency audit findings remain documented.
 - CP03 must not begin without Planning Lead authorization.
+## CP03 - Scanner Repair Acceptance
+
+Status: Implemented and acceptance-tested; awaiting Planning Lead approval and PR #6 merge.
+
+Repository evidence:
+- Pull request: https://github.com/ahmadbitaarr/TrueSeal/pull/6
+- Implementation commit: c6d568fb6ae50a9c2e0eee5144261a71b6755454
+- Conflict-resolution merge commit: 694830b
+- Branch: feat/cp-03-scanner
+- Teammate's earlier CP03 implementation was merged through PR #5; PR #6 supersedes its scanner implementation.
+
+Implemented:
+- Camera-based QR scanning with lifecycle cleanup and permission handling.
+- QR image upload and local decoding with validation and user-facing errors.
+- QR generation utility for signed verification URLs, with round-trip tests.
+- Scanned content displayed as Unverified; links do not open automatically.
+- Public unsigned QR generator removed from the homepage.
+- Existing CP01/CP02 functionality preserved.
+
+Verification:
+- npm run check: PASS.
+- TypeScript: PASS.
+- ESLint: PASS.
+- Vitest: 46/46 tests passed across 7 test files.
+- Production build: PASS.
+- GitHub CI: PASS on PR #6.
+- Cloudflare Pages preview deployment: PASS.
+- Merge conflicts: Resolved.
+- Phone HTTPS acceptance: 7/7 checks passed, as reported by the tester on 2026-11-08.
+
+Phone acceptance covered:
+1. Homepage renders correctly.
+2. Camera permission request works.
+3. Camera scans a real QR code.
+4. Scanned result remains Unverified without opening links.
+5. Camera stops and releases resources when leaving the scanner.
+6. Uploaded QR screenshot decodes successfully.
+7. Denied camera permission produces a usable error or upload fallback.
+
+Preview:
+https://feat-cp-03-scanner.trueseal-431.pages.dev
+
+Known limitations and follow-up:
+- Verification engine and trusted issuer validation are not active yet.
+- Signed QR issuance through the organization interface is not active.
+- Node 24 was used for local checks despite the project's declared Node 22 requirement.
+- npm ci reported 10 dependency audit findings (8 moderate, 2 critical); these require separate review.
+- Planning Lead approval and final merge are still pending.

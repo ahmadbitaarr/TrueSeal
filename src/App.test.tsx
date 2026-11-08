@@ -1,108 +1,72 @@
-
-import { fireEvent, render, screen, cleanup } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import { generateQRCode, decodeQRImage } from './lib/qr'
 
-vi.mock('./lib/qr', () => ({
-  generateQRCode: vi.fn(),
-  decodeQRImage: vi.fn(),
+// Device lifecycle is tested independently; these tests exercise route composition.
+vi.mock('./components/CameraScanner', () => ({
+  default: ({ onDecoded, onUploadFallback }: { onDecoded: (value: string) => void; onUploadFallback: () => void }) => (
+    <div>
+      <button onClick={() => onDecoded('https://unverified.example/path')}>Simulate decoded QR</button>
+      <button onClick={onUploadFallback}>Upload fallback</button>
+    </div>
+  ),
+}))
+vi.mock('./components/ImageScanner', () => ({
+  default: ({ onDecoded }: { onDecoded: (value: string) => void }) => (
+    <button onClick={() => onDecoded('uploaded-qr-value')}>Simulate upload decode</button>
+  ),
 }))
 
-afterEach(() => {
-  cleanup()
-  vi.clearAllMocks()
-})
+afterEach(cleanup)
 
-describe('TrueSeal CP03 QR functionality', () => {
-  it('shows the homepage and QR actions', () => {
+describe('TrueSeal scanner-first application', () => {
+  it('retains the approved homepage branding and actions', () => {
     render(<App />)
-
     expect(screen.getByRole('heading', { name: 'Scan with confidence.' })).toBeInTheDocument()
+    expect(screen.getByText('Check who signed a QR code and where it leads.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Scan QR Code/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Upload QR Image/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Generate QR Code/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /For organizations/ })).toBeInTheDocument()
+    expect(screen.getByText('No account required. Links never open automatically.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Generate QR Code/ })).not.toBeInTheDocument()
   })
 
-  it('generates and displays a QR code', async () => {
-    vi.mocked(generateQRCode).mockResolvedValue('data:image/png;base64,test')
-
+  it('replaces CP01 scanner placeholder with the scanner interface', () => {
     render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /Generate QR Code/ }))
-    fireEvent.change(screen.getByLabelText('Text or URL'), {
-      target: { value: 'https://example.com' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }))
-
-    expect(await screen.findByAltText('Generated QR code')).toHaveAttribute(
-      'src',
-      'data:image/png;base64,test',
-    )
-  })
-
-  it('displays an error when QR generation fails', async () => {
-    vi.mocked(generateQRCode).mockRejectedValue(new Error('Enter text or a URL first.'))
-
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /Generate QR Code/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Enter text or a URL first.',
-    )
-  })
-
-  it('decodes an uploaded QR image', async () => {
-    vi.mocked(decodeQRImage).mockResolvedValue('https://example.com')
-
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /Upload QR Image/ }))
-
-    const file = new File(['image'], 'qr.png', { type: 'image/png' })
-    fireEvent.change(screen.getByLabelText('Choose image'), {
-      target: { files: [file] },
-    })
-
-    expect(await screen.findByText('https://example.com')).toBeInTheDocument()
-    expect(screen.getByText(/TrueSeal has not verified it/)).toBeInTheDocument()
-  })
-
-  it('shows an error when an image cannot be decoded', async () => {
-    vi.mocked(decodeQRImage).mockRejectedValue(new Error('No QR code'))
-
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: /Upload QR Image/ }))
-
-    const file = new File(['image'], 'invalid.png', { type: 'image/png' })
-    fireEvent.change(screen.getByLabelText('Choose image'), {
-      target: { files: [file] },
-    })
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'No readable QR code was found',
-    )
-  })
-
-  it('provides camera scanning controls', () => {
-    render(<App />)
-
     fireEvent.click(screen.getByRole('button', { name: /Scan QR Code/ }))
-
     expect(screen.getByRole('heading', { name: 'Scan a QR Code' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Start Camera/ })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Back to home/ }))
+    expect(screen.getByRole('heading', { name: 'Scan with confidence.' })).toBeInTheDocument()
   })
 
-  it('keeps organization access unavailable', () => {
+  it('presents arbitrary scanned links as unverified, never as verified destinations', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /Scan QR Code/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Simulate decoded QR' }))
+    expect(screen.getByText('Unverified')).toBeInTheDocument()
+    expect(screen.getByTestId('qr-raw-content')).toHaveTextContent('https://unverified.example/path')
+    expect(screen.queryByText('Signature verified.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Open/ })).not.toBeInTheDocument()
+    expect(openSpy).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Scan another' }))
+    expect(screen.getByRole('button', { name: 'Simulate decoded QR' })).toBeInTheDocument()
+    openSpy.mockRestore()
+  })
 
+  it('routes camera fallback to image upload and handles decoded uploads as unverified', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /Scan QR Code/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Upload fallback' }))
+    expect(screen.getByRole('heading', { name: 'Upload a QR Image' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Simulate upload decode' }))
+    expect(screen.getByText('Unverified')).toBeInTheDocument()
+    expect(screen.getByTestId('qr-raw-content')).toHaveTextContent('uploaded-qr-value')
+  })
+
+  it('preserves the organization placeholder', () => {
+    render(<App />)
     fireEvent.click(screen.getByRole('button', { name: /For organizations/ }))
-
-    expect(
-      screen.getByRole('heading', { name: /Organization access is coming soon/ }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Organization access is coming soon' })).toBeInTheDocument()
   })
 })
