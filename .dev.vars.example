@@ -1,3 +1,11 @@
 # CP01 does not require signing keys, authentication credentials, or tokens.
 # Example only. Any real future secrets must be in .dev.vars (ignored by Git).
 TRUSEAL_ENV=development
+
+# Milestone A server-only values. Generate real local values using
+# `node scripts/provision-demo.mjs --local`; never add a VITE_ prefix.
+TRUSEAL_ACCESS_KEY_SHA256=REPLACE_WITH_64_CHARACTER_SHA256_HASH
+TRUSEAL_THROTTLE_SECRET=REPLACE_WITH_RANDOM_32_BYTE_SECRET
+TRUSEAL_SIGNING_PRIVATE_JWK=REPLACE_WITH_PRIVATE_ED25519_JWK_JSON
+TRUSEAL_PUBLIC_ORIGIN=https://YOUR-APP.pages.dev
+TRUSEAL_SIGNING_KID=YOUR_REGISTERED_KEY_ID

@@ -31,3 +31,6 @@ id_rsa*
 .DS_Store
 .idea/
 .vscode/
+
+# Human-generated Milestone A local/production credential material
+.local/

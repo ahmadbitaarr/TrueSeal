@@ -152,7 +152,7 @@ export default function App() {
             </div>
             <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#15803D]">Not yet implemented</p>
             <h1 className="mt-3 text-3xl font-bold tracking-tight">Organization access is coming soon</h1>
-            <p className="mt-4 leading-7 text-slate-600">Issuer sign-in and signed QR issuance will be added in later checkpoints. There is no active organization portal yet.</p>
+            <p className="mt-4 leading-7 text-slate-600">The organization portal is not available yet. Signed QR issuance is available only through protected backend APIs during development.</p>
             <button className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#101C34] px-5 py-3 font-semibold text-white" onClick={goHome}>
               <ArrowLeft size={18} aria-hidden="true" /> Back to home
             </button>
