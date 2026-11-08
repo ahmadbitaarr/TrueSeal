@@ -1,0 +1,33 @@
+# Dependencies, generated assets, test/build outputs
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+*.log
+npm-debug.log*
+
+# Cloudflare local state and account credentials
+.wrangler/
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+
+# Signing/private keys and common secret containers
+*.pem
+*.key
+*.p12
+*.pfx
+*.jwk
+*.jks
+*.keystore
+id_ed25519*
+id_rsa*
+**/secrets/**
+**/private-keys/**
+
+# Local IDE and OS files
+.DS_Store
+.idea/
+.vscode/
