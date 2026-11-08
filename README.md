@@ -1,73 +1,52 @@
 # TrueSeal
 
-TrueSeal is a mobile-first QR authenticity project for KTP Hacks 2. This repository currently contains **Checkpoint 01 only**: a responsive frontend, a Cloudflare Pages Function health endpoint, and D1 binding configuration. **QR scanning, signed issuance, issuer access, signature verification, and revocation are not implemented yet.**
+TrueSeal is a mobile-first QR authenticity verifier built for KTP Hacks 2. A provisioned **TrueSeal Demo Organization** can issue real Ed25519-signed QR codes; students can scan with their phone camera, upload QR images, or open a `/v/<signed-token>` link to check the current issuance record, registered signing key, approved destination, expiration, and revocation state.
 
-## Requirements
+**This is a hackathon demonstration, not a Virginia Tech official verification service.** The configured demonstration issuer is explicitly labeled. Unknown or unsigned content is never treated as trusted. TrueSeal never opens scanned destinations automatically; the **Open Destination** action appears only for a currently `VERIFIED` code. Verification is not a guarantee that an external website is harmless.
 
-- Node.js **22** (`.nvmrc`), npm 10+
-- An authorized Cloudflare account for remote D1 creation and Pages deployment
-- An authorized GitHub account for manual version control and CI activation
+## Stack
 
-## Install and run (local)
+React + TypeScript + Vite, Tailwind CSS, Lucide, `qr-scanner`, `qrcode`, `jose` Ed25519/JWS, Cloudflare Pages Functions and D1. Node.js 22.
 
-```bash
-# Run from the project root. Install Node.js 22 first.
-npm install              # Creates package-lock.json on first run; commit that lockfile.
-npm ci                   # Required after package-lock.json exists.
-npm run dev              # Vite frontend: http://localhost:5173
-npm run check            # Typecheck, ESLint, Vitest, production build
-npm run dev:edge         # Production build + Pages Functions: http://localhost:8788
+## Development
+
+```sh
+npm ci
+npm run check
+npm run dev:edge
 ```
 
-In a second terminal while `dev:edge` is running:
+The local Pages server runs at `http://127.0.0.1:8788`. The Vite-only `npm run dev` serves the frontend without Pages Functions. Configure local `.dev.vars` and the migrated, seeded local D1 database per `MILESTONE_A_HANDOFF.md`; do **not** commit keys or access credentials. `npm run dev:edge` uses local Cloudflare Pages Functions and D1.
 
-```bash
-curl -i http://localhost:8788/api/health
+Run the existing end-to-end flow, now extended to test real public verification:
+
+```sh
+node scripts/milestone-a-smoke.mjs
 ```
 
-Success requires an actual D1 read-only query. Expected **only after connected local D1 works**:
+This requires ignored `.local/local-access-key.txt` and `.local/local-public-jwk.json` fixture files from the existing local provisioning process. No production credentials are required, and the script must only run against local Pages/D1.
 
-```json
-{"status":"ok","application":"ok","database":"connected"}
-```
+## Public verification contract
 
-If D1 binding or query fails, the endpoint responds with **HTTP 503** and `{"status":"error","application":"ok","database":"unavailable"}`. `npm run dev` runs the Vite frontend only and does not serve `/api/health`; use `dev:edge` for the integration test. The local Wrangler D1 database is isolated from the production database; passing local health does not prove production connectivity.
+`POST /api/verify` accepts JSON `{ "value": "<TrueSeal verification URL or compact JWS>" }`. A verification URL must have the exact configured HTTPS origin and a `/v/<token>` path; compact tokens are accepted to support the client-side direct-link route. The response has `status` and `message`. For `VERIFIED` only, it includes the registered issuer identity, signed destination, title and timestamps.
 
-## D1 database setup (human-authorized only)
+Statuses: `VERIFIED`, `UNKNOWN`, `INVALID`, `EXPIRED`, `REVOKED`, `CAUTION`, `UNAVAILABLE`. All responses set `Cache-Control: no-store`; a database/service failure returns HTTP 503 with `UNAVAILABLE`. A disabled issuer/key or withdrawn destination permission returns `CAUTION`. Revocation precedes expiration. No state or private data is leaked for nonverified statuses.
 
-No remote database has been created by this project. On your own authorized computer:
+The verifier enforces the approved EdDSA/JWS protected header, signature against an independently registered Ed25519 key, signed claims, exact stored signed token and metadata, current issuer/key authorization, and current allowed host. It never uses token-provided URLs to retrieve keys.
 
-1. Run `npx wrangler login` and sign in (never paste a token or secret into chat).
-2. Run `npx wrangler d1 list`. Reuse `trueseal-db` if it already exists in the intended Cloudflare account.
-3. If it does not exist, **you** run `npx wrangler d1 create trueseal-db`.
-4. Copy the nonsecret database UUID into `wrangler.jsonc` at `d1_databases[0].database_id`. The all-zero UUID currently in the file is a **sentinel placeholder**, **not a real remote DB ID**. Do not deploy with the sentinel.
-5. Keep `binding` and `preview_database_id` exactly `DB`. The local D1 state will be created/used by `npm run dev:edge`, without remote D1 writes.
-6. Optionally confirm the remote resource with `npx wrangler d1 info trueseal-db`. Never commit credentials.
+## Demo flow
 
-Do not create app tables yet (CP04). See [Cloudflare's D1 guide](https://developers.cloudflare.com/d1/best-practices/local-development/) for the local Pages D1 configuration.
+1. Open the homepage and select **For organizations**. Sign in with the authorized demonstration access key, configured server-side.
+2. Choose a title, the approved demo destination (`https://trueseal-431.pages.dev/demo`), and expiration. Issue and download the real signed QR PNG.
+3. On another device, scan the QR using TrueSeal or open its `/v/<token>` link directly. It must show `VERIFIED`, **TrueSeal Demo Organization**, and the signed destination.
+4. Select **Open Destination** manually to view the demonstration page. Try an unsigned random QR to see a nonverified result.
 
-## GitHub and Cloudflare Pages deployment (human-authorized only)
+The auth API is already protected by server-side sessions and same-origin checks. The organization interface does not persist raw access keys. There is no public registration or automatic URL opening.
 
-Keep `main` stable. Commit CP01 on a short-lived `feat/cp-01-foundation` branch, open a PR, and require the `.github/workflows/ci.yml` workflow to pass before merging to `main`. The CI workflow uses `npm ci`, so **package-lock.json is mandatory**. Avoid committing `.dev.vars`, `.env` or private-key material; see `.gitignore`.
+## Limitations
 
-After the **human** creates/connects the repository and verifies real database UUID:
+- **Revocation display** is implemented for previously revoked D1 records, but the **revocation management endpoint/button is not implemented** in this emergency release.
+- The demo account and approved destination are limited to TrueSeal's own domain. Other organizations must not be represented as officially trusted.
+- Secure production deployment, D1 runtime behavior, and real-phone verification must be tested after the human-controlled GitHub merge and Cloudflare deploy. Consult `STATUS.md` and `EMERGENCY_RELEASE_HANDOFF.md` for evidence and commands.
 
-1. In [Cloudflare Workers & Pages](https://dash.cloudflare.com/), choose **Create application → Pages → Connect to Git** and authorize the repository.
-2. Choose production branch **main**, root **/**, build command **`npm run build`**, output directory **`dist`**, Node.js version **22** (set nonsecret build variable `NODE_VERSION=22` if Cloudflare's build configuration needs it).
-3. Ensure this repo's `wrangler.jsonc` is used as the Pages configuration source of truth, and verify the **DB** D1 binding points to `trueseal-db` in the intended Cloudflare account for production (and preview if preview is enabled). Do not leave conflicting dashboard bindings/configuration.
-4. After CI passes and PR is merged, wait for the production deployment to succeed. Copy the **actual** HTTPS hostname from the Pages deployment dashboard.
-5. Run `curl -i https://ACTUAL_HOST/api/health` (replace `ACTUAL_HOST` with the assigned hostname). Both 200 and JSON `"database":"connected"` are required. Check the mobile homepage in a real phone browser; verify buttons show honest placeholders.
-6. Record deployment URL, response, branch, PR, SHA, checks, and date in `STATUS.md` after verification.
-
-Official docs: [Cloudflare Pages Git integration](https://developers.cloudflare.com/pages/get-started/git-integration/), [Pages Functions Wrangler configuration](https://developers.cloudflare.com/pages/functions/wrangler-configuration/), [D1 CLI](https://developers.cloudflare.com/d1/wrangler-commands/).
-
-## Security notes
-
-- No signing or session credentials are created in CP01.
-- Keep future secrets in ignored `.dev.vars` locally and platform secret settings remotely; never in `VITE_` variables, which become client-visible.
-- `GET /api/health` checks `SELECT 1 AS healthy` and returns 503 on missing or failed D1 connections; it does not leak database exception text.
-- Verification and security features are **not** implemented. Do not treat this foundation as a secure QR verifier.
-
-## Checkpoint
-
-See [STATUS.md](STATUS.md) for the 14-checkpoint ledger and evidence status. Do not begin CP02 without Planning Lead approval.
+Never commit `.dev.vars`, `.env`, local D1 state, raw access keys, private keys or session cookies.

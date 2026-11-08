@@ -70,6 +70,20 @@ try {
     const data = await QRCode.toDataURL(code.verificationUrl, { margin: 4, width: 768, errorCorrectionLevel: 'M' })
     const png = PNG.sync.read(Buffer.from(data.split(',')[1], 'base64'))
     assert(png.width >= 512 && jsQR(new Uint8ClampedArray(png.data), png.width, png.height)?.data === code.verificationUrl, 'signed QR image round trips')
+    const publicCheck = await call('/api/verify', 'POST', { value: code.verificationUrl })
+    assert(publicCheck.response.status === 200 && publicCheck.payload?.status === 'VERIFIED' &&
+      publicCheck.payload?.destination === expectedDestination && publicCheck.payload?.issuer?.trustTier === 'demo',
+      'public verifier confirms persisted signed code and registered demonstration issuer')
+    assert(publicCheck.response.headers.get('cache-control') === 'no-store', 'public verification responses are not cached')
+    const untrusted = await call('/api/verify', 'POST', { value: 'https://attacker.example/unsafe' })
+    assert(untrusted.payload?.status === 'UNKNOWN' && !untrusted.payload?.destination, 'unsigned external QR is not trusted')
+    const parts = code.signedToken.split('.')
+    parts[2] = (parts[2][0] === 'A' ? 'B' : 'A') + parts[2].slice(1)
+    const tampered = await call('/api/verify', 'POST', { value: parts.join('.') })
+    assert(tampered.payload?.status !== 'VERIFIED' && !tampered.payload?.destination, 'tampered QR cannot become VERIFIED')
+    const direct = await fetch(localOrigin + '/v/' + code.signedToken)
+    assert(direct.status === 200 && (direct.headers.get('content-type') ?? '').includes('text/html'),
+      'direct /v/<token> page serves the application HTML')
     const listed = await call('/api/issuer/codes', 'GET', undefined, cookie)
     assert(listed.response.status === 200 && listed.payload?.codes?.some((item) => item.signedToken === code.signedToken), 'stored token matches protected listing')
     const detail = await call(`/api/issuer/codes/${code.jti}`, 'GET', undefined, cookie)
