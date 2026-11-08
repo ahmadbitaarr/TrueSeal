@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,16 +12,34 @@ import {
 import CameraScanner from './components/CameraScanner'
 import ImageScanner from './components/ImageScanner'
 import ScanResult from './components/ScanResult'
+import OrganizationPortal from './components/OrganizationPortal'
 
-type Screen = 'home' | 'scan' | 'upload' | 'result' | 'organizations'
+type Screen = 'home' | 'scan' | 'upload' | 'result' | 'organizations' | 'demo'
 type ScanOrigin = 'scan' | 'upload'
 
+function initialPath(): { screen: Screen; value: string } {
+  if (window.location.pathname === '/demo') return { screen: 'demo', value: '' }
+  if (window.location.pathname.startsWith('/v/')) return { screen: 'result', value: (window.location.search || window.location.hash) ? window.location.href : window.location.pathname.slice(3) }
+  return { screen: 'home', value: '' }
+}
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('home')
-  const [decodedValue, setDecodedValue] = useState('')
+  const [initial] = useState(initialPath)
+  const [screen, setScreen] = useState<Screen>(initial.screen)
+  const [decodedValue, setDecodedValue] = useState(initial.value)
+  useEffect(() => {
+    const onPop = () => {
+      const path = initialPath()
+      setDecodedValue(path.value)
+      setScreen(path.screen)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   const [origin, setOrigin] = useState<ScanOrigin>('scan')
 
   function goHome() {
+    if (window.location.pathname !== '/') window.history.pushState(null, '', '/')
     setDecodedValue('')
     setScreen('home')
   }
@@ -120,7 +138,7 @@ export default function App() {
                 </div>
 
                 <p className="mt-5 text-xs text-slate-300">
-                  Product preview · Verification not active
+                  Registered signatures · Explicit destination choice
                 </p>
               </div>
             </div>
@@ -128,7 +146,7 @@ export default function App() {
                 ) : screen === 'scan' ? (
           <section className="mx-auto mt-12 max-w-xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <h1 className="text-3xl font-bold">Scan a QR Code</h1>
-            <p className="mt-3 text-slate-600">Scan with your camera. No link will open automatically, and verification is not active yet.</p>
+            <p className="mt-3 text-slate-600">Scan with your camera. No link will open automatically, and TrueSeal will check authenticity before showing a trusted destination.</p>
             <CameraScanner onDecoded={(value) => handleDecoded(value, 'scan')} onUploadFallback={() => setScreen('upload')} />
             <button type="button" className="mt-8 inline-flex items-center gap-2 font-semibold text-slate-600" onClick={goHome}>
               <ArrowLeft size={17} aria-hidden="true" /> Back to home
@@ -137,7 +155,7 @@ export default function App() {
         ) : screen === 'upload' ? (
           <section className="mx-auto mt-12 max-w-xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <h1 className="text-3xl font-bold">Upload a QR Image</h1>
-            <p className="mt-3 text-slate-600">Decode a QR screenshot or photo in your browser. Results are unverified until the verification engine is available.</p>
+            <p className="mt-3 text-slate-600">Decode a QR screenshot or photo in your browser. Any decoded QR will be checked using the TrueSeal verification service.</p>
             <ImageScanner onDecoded={(value) => handleDecoded(value, 'upload')} />
             <button type="button" className="mt-8 inline-flex items-center gap-2 font-semibold text-slate-600" onClick={goHome}>
               <ArrowLeft size={17} aria-hidden="true" /> Back to home
@@ -145,23 +163,20 @@ export default function App() {
           </section>
         ) : screen === 'result' ? (
           <ScanResult value={decodedValue} onAgain={() => { setDecodedValue(''); setScreen(origin) }} onHome={goHome} />
-        ) : (
-          <section aria-live="polite" className="mx-auto mt-12 max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:mt-20 sm:p-12">
-            <div className="mb-6 inline-flex rounded-2xl bg-green-50 p-4 text-[#15803D]">
-              <ShieldCheck size={30} aria-hidden="true" />
-            </div>
-            <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#15803D]">Not yet implemented</p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight">Organization access is coming soon</h1>
-            <p className="mt-4 leading-7 text-slate-600">The organization portal is not available yet. Signed QR issuance is available only through protected backend APIs during development.</p>
-            <button className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#101C34] px-5 py-3 font-semibold text-white" onClick={goHome}>
-              <ArrowLeft size={18} aria-hidden="true" /> Back to home
-            </button>
+        ) : screen === 'demo' ? (
+          <section className="mx-auto mt-12 max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:p-12">
+            <div className="mb-4 inline-flex rounded-2xl bg-green-50 p-4 text-[#15803D]"><ShieldCheck size={30} aria-hidden="true" /></div>
+            <h1 className="text-3xl font-bold">TrueSeal Demo Destination</h1>
+            <p className="mt-4 leading-7 text-slate-600">This is the demonstration destination hosted by TrueSeal. A direct visit to this page does not prove that any QR code is authentic. Scan the signed QR and review its verification result first.</p>
+            <button onClick={goHome} className="mt-8 rounded-xl bg-[#101C34] px-5 py-3 font-semibold text-white">Back to TrueSeal</button>
           </section>
+        ) : (
+          <OrganizationPortal onHome={goHome} />
         )}
       </main>
       <footer className="mx-auto flex max-w-6xl flex-col gap-2 px-5 pb-8 text-xs text-slate-500 sm:flex-row sm:justify-between sm:px-8">
         <span>TrueSeal · Know before you open.</span>
-        <span>QR scanning · Verification coming soon</span>
+        <span>Signed QR authenticity checks · Demo issuer</span>
       </footer>
     </div>
   )
