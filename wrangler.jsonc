@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "trueseal",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-11-07",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "trueseal-db",
+      "database_id": "9b524f9f-97f3-4116-9d43-491875a4c58f",
+      "preview_database_id": "DB"
+    }
+  ]
+}
