@@ -1,10 +1,10 @@
-﻿# TrueSeal — Checkpoint Status
+# TrueSeal — Checkpoint Status
 
 - Approved product specification: Phase 2 v1.0
-- Current checkpoint: CP01 — Foundation + Cloudflare
+- Current checkpoint: CP02 — Ed25519/JWS core
 - CP01 implementation: VERIFIED; awaiting Planning Lead approval
-- Last approved checkpoint: None
-- Next checkpoint: CP02 — Ed25519/JWS core (NOT AUTHORIZED)
+- Last approved checkpoint: CP01
+- Next checkpoint: CP03 — QR generation and scanning (NOT AUTHORIZED)
 
 ## Repository and deployment
 
@@ -56,7 +56,7 @@
 | Checkpoint | Status |
 | --- | --- |
 | CP01 — Foundation + Cloudflare | TECHNICALLY VERIFIED; PLANNING APPROVAL PENDING |
-| CP02 — Ed25519/JWS core | NOT STARTED |
+| CP02 — Ed25519/JWS core | TECHNICALLY VERIFIED; PLANNING APPROVAL PENDING |
 | CP03 — QR generation and scanning | NOT STARTED |
 | CP04 — D1 issuer trust | NOT STARTED |
 | CP05 — Issuer authentication | NOT STARTED |
@@ -74,3 +74,50 @@
 
 All observed CP01 technical acceptance checks are passing.
 Request Planning Lead review and approval before beginning CP02.
+
+## CP02 verification — November 8, 2026
+
+- Checkpoint: CP02 — Ed25519/JWS core
+- Status: TECHNICALLY VERIFIED; PLANNING APPROVAL PENDING
+- Implementation branch: feat/cp-02-crypto
+- Tested commit: 2b128f5752f380abc9fdeb3e28e25ad638c2a423
+- Pull request: https://github.com/ahmadbitaarr/TrueSeal/pull/3
+- Merge commit: de2453e (abbreviated)
+- GitHub CI: 2 successful checks
+- Dependency: jose@6.2.15
+
+### Test evidence
+
+| Verification | Result |
+| --- | --- |
+| npm ci | PASS |
+| Cryptographic unit tests | PASS — 17/17 |
+| Total regression tests | PASS — 25/25 |
+| TypeScript | PASS |
+| ESLint | PASS |
+| Production build | PASS |
+| Cloudflare local workerd smoke test | PASS |
+| Local workerd response | status=ok, ed25519=verified, runtime=workerd |
+| Git staged-file checks | PASS |
+| GitHub PR #3 | MERGED |
+| GitHub CI | PASS — 2 checks |
+
+### Security coverage
+
+Tests cover signature and claim tampering, unexpected algorithms,
+wrong public keys, malformed JWS, unexpected headers, invalid claims,
+and expired tokens.
+
+Expiration checking is separate from signature authentication.
+The key ID is treated as a hint, not as proof of issuer trust.
+
+No permanent private keys, public signing endpoints, or production
+signing credentials were introduced.
+
+### Remaining considerations
+
+- CP02 is not formally approved until Planning Lead signs off.
+- CP02 cryptography was tested locally in Cloudflare workerd;
+  no production signing functionality is being claimed.
+- Existing development-dependency audit findings remain documented.
+- CP03 must not begin without Planning Lead authorization.
