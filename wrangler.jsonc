@@ -12,6 +12,12 @@
     }
   ],
   "env": {
+    "production": {
+      "vars": {
+        "TRUSEAL_PUBLIC_ORIGIN": "https://trueseal-431.pages.dev",
+        "TRUSEAL_SIGNING_KID": "trueseal-demo-ed25519-v1"
+      }
+    },
     "preview": {
       "d1_databases": [
         {
