@@ -1,3 +1,92 @@
+# TrueSeal — Current checkpoint status (November 8, 2026)
+
+- Approved Phase 2 specification: v1.0 (unchanged)
+- Last approved checkpoint: **CP03 — QR generation and scanning**
+- Current work: **Milestone A (CP04, CP05, CP06), locally implemented; acceptance testing pending**
+- Authoritative baseline (`main`): `c27a38a2fa4e268cc0e90897e5550d4d9e7a1161`
+- Human-created feature branch: `feat/milestone-a-secure-issuance`
+- Repository: https://github.com/ahmadbitaarr/TrueSeal
+- Production website: https://trueseal-431.pages.dev/ (Milestone A changes NOT deployed)
+- Milestone A PR, tested feature SHA, merge SHA: **PENDING HUMAN GIT ACTIONS**
+- Deployment/production migrations/Cloudflare secrets: **NOT APPLIED OR VERIFIED**
+- Next milestone: CP07 — NOT AUTHORIZED
+
+## Milestone A acceptance state
+
+| Gate | Delivered locally | Test status |
+| --- | --- | --- |
+| CP04 — D1 registry | Six-table migration, FK/uniqueness/immutability, public demo JWK+host seed script | SQLite contract PASSED; real local D1 NOT RUN |
+| CP05 — Issuer authentication | Server-only verifier, HMAC IP throttle, 4-hour hashed sessions, Secure/HttpOnly/Strict cookie, logout, same-origin check | Unit cases authored; Vitest/workerd NOT RUN |
+| CP06 — Signed issuance | Session-bound Ed25519 JWS issuance, active issuer/key + exact host, atomic guarded D1 insert, private list/detail APIs, QR-length guard | Unit/QR cases authored; Vitest/workerd NOT RUN |
+| A4 — End-to-end | Local Pages+D1 HTTP smoke test script | NOT RUN |
+| Regression + CI | Existing 46 tests retained, source architecture preserved | NOT RUN here; CI/PR PENDING |
+
+### Verified in implementation workspace
+
+- Node version: **22.16.0**; npm: 10.9.2.
+- Python SQLite migration contract: **PASS, 6 tables, 11 assertions** (not equivalent to Cloudflare D1).
+- Local public-only demo seed: inserted into SQLite twice without duplication; no private JWK stored in D1 SQL.
+- Local provisioning script: generated four ignored files in disposable test workspace; rerun correctly refused to overwrite keys.
+- TypeScript parser/transpilation syntax check: **31 TypeScript/TSX sources, 0 syntax errors**; does NOT substitute for `tsc`/ESLint.
+- Node 22 direct runtime smoke against transpiled actual CP05 handlers and policy: **PASS, 16 checks with mocked D1** (NOT Cloudflare runtime).
+- SQLite executed actual CP06 guarded `INSERT ... SELECT ... RETURNING` query and CP05 atomic login UPSERT: both **PASS**, including blocking issuance when key disabled and correctly incrementing throttles.
+- `npm ci --offline`: **FAILED** (`ENOTCACHED` for `youch-core-0.3.3.tgz`); online registry access unavailable.
+- `npm run typecheck`: **FAILED, exit 2** (missing installed test/Vite type definitions).
+- `npm run lint`: **FAILED, exit 127** (ESLint unavailable without dependencies).
+- `npm test`: **FAILED, exit 127** (Vitest unavailable without dependencies).
+- `npm run build`: **FAILED, exit 2** (prerequisite typecheck failed).
+- `npm run check`: **FAILED, exit 2** (prerequisite typecheck failed).
+- Node parsing of both new provisioning and smoke scripts: **PASS**; Python migration-check script syntax: **PASS**.
+- Real D1/Pages workerd runtime, CI and production smoke: **NOT RUN**.
+- Baseline/archive comparison: **19 new files, 6 modified files, 0 deleted files**; package manifest, lockfile, cryptographic core, scanner, homepage layout and Wrangler config remain unchanged (organization placeholder copy corrected).
+- Source secret-pattern scan: **no private key headers, private JWK literal, or access-token patterns found** (not a comprehensive secrets audit).
+- No real production key, remote Cloudflare resource, or Git operation created by implementation assistant.
+- Existing known dependency audit findings remain to be triaged: 10 (8 moderate, 2 critical), per previous recorded CP03 results; no new dependency introduced.
+
+### Deliverables and configuration
+
+- Migration: `migrations/0001_secure_issuance.sql` (six tables and triggers).
+- Auth: `functions/_lib/auth.ts`, `functions/api/auth/{login,session,logout}.ts`.
+- Issuance: `functions/_lib/issue.ts`, `functions/api/issuer/codes/{index,[id]}.ts`.
+- Policy and shared QR limit: `functions/_lib/{config,destinations,http}.ts`, `src/shared/qrLimits.ts`, `src/lib/qr.ts`, `src/App.tsx` (factual placeholder wording), `tsconfig.functions.json` (Node test typings).
+- Test files: `functions/_lib/{auth,destinations,issue}.test.ts`, `tests/check_migration.py`, `scripts/milestone-a-smoke.mjs`.
+- Provisioning: `scripts/provision-demo.mjs`, `.dev.vars.example`, `.gitignore`.
+- Operator instructions: `MILESTONE_A_HANDOFF.md`.
+- Required private Cloudflare runtime secret names: `TRUSEAL_ACCESS_KEY_SHA256`, `TRUSEAL_THROTTLE_SECRET`, `TRUSEAL_SIGNING_PRIVATE_JWK`.
+- Required server configuration: `TRUSEAL_PUBLIC_ORIGIN`, `TRUSEAL_SIGNING_KID`, D1 binding `DB`.
+- Fresh local and production credentials must be provisioned independently by the human. `.dev.vars` and `.local/` are ignored.
+
+### Checkpoint ledger (current authoritative state)
+
+| Checkpoint | State |
+| --- | --- |
+| CP01 Foundation + Cloudflare | APPROVED |
+| CP02 Ed25519/JWS core | APPROVED |
+| CP03 QR generation + real-phone scanning | APPROVED; PR #6 merged |
+| CP04 D1 + issuer trust | IMPLEMENTED; CLOUDFLARE D1 GATE PENDING |
+| CP05 Issuer authentication | IMPLEMENTED; TEST GATE PENDING |
+| CP06 Signed issuance | IMPLEMENTED; TEST GATE PENDING |
+| CP07 Verification engine | NOT AUTHORIZED |
+| CP08 Student results | NOT STARTED |
+| CP09 Organization dashboard | NOT STARTED |
+| CP10 Revocation | NOT STARTED |
+| CP11 Adversarial security tests | NOT STARTED |
+| CP12 UI polish + accessibility | NOT STARTED |
+| CP13 Production E2E + README | NOT STARTED |
+| CP14 Demo + Devpost submission | NOT STARTED |
+
+### Security and known limitations
+
+- No signing, authentication, or issuance credentials are bundled in frontend modules, seed SQL or new tracked source; local and production secret provisioning is manual.
+- D1 stores registered **public** JWK only; session hashes, not raw cookie tokens; hashed/HMAC client throttling identifiers, not raw client IPs.
+- Real D1 atomic SQL, Cloudflare runtime compatibility, security regression, remote migrations, encrypted secrets and post-merge CI remain unverified.
+- CP07 public verification and student `VERIFIED` result logic are intentionally not implemented.
+- Historical CP01–CP03 status notes below reflect the state at their original drafting; this header supersedes earlier pending-approval language.
+
+---
+
+## Historical checkpoint reports — preserved evidence
+
 # TrueSeal — Checkpoint Status
 
 - Approved product specification: Phase 2 v1.0

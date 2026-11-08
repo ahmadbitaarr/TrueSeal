@@ -1,10 +1,11 @@
 import QRCode from 'qrcode'
 import QrScanner from 'qr-scanner'
+import { MAX_PRACTICAL_QR_BYTES } from '../shared/qrLimits'
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024
 // This is a usability ceiling, not QR's theoretical byte-mode maximum.
 // Very dense signed-token QR codes become difficult for phone cameras to scan.
-export const MAX_PRACTICAL_QR_BYTES = 1200
+export { MAX_PRACTICAL_QR_BYTES } from '../shared/qrLimits'
 export const QR_IMAGE_WIDTH = 768
 
 export async function generateQRCode(value: string): Promise<string> {
