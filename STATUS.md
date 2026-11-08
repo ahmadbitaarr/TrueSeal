@@ -169,4 +169,3 @@ Known limitations and follow-up:
 - Node 24 was used for local checks despite the project's declared Node 22 requirement.
 - npm ci reported 10 dependency audit findings (8 moderate, 2 critical); these require separate review.
 - Planning Lead approval and final merge are still pending.
-
